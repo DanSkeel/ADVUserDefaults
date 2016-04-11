@@ -73,6 +73,7 @@ NS_INLINE BOOL PropertyIsDynamic(objc_property_t property)
             });                                                                                             \
             *setter = imp_implementationWithBlock(BLOCK_CAST ^(ADVUserDefaults *this, type value) {         \
                 [this.defaults setObject:@(value) forKey:key];                                              \
+                [this syncIfNeeded];                                                                        \
             });                                                                                             \
         }                                                                                                   \
 
@@ -84,6 +85,7 @@ NS_INLINE BOOL PropertyIsDynamic(objc_property_t property)
 @implementation ADVUserDefaults
 
 @synthesize defaults = _defaults;
+@synthesize syncOnPropertyChange = _syncOnPropertyChange;
 
 #pragma mark - ADVUserDefaults
 + (NSString *) defaultsKeyForPropertyNamed:(NSString *)propertyName
@@ -120,6 +122,8 @@ NS_INLINE BOOL PropertyIsDynamic(objc_property_t property)
                 {
                     [this.defaults removeObjectForKey:key];
                 }
+                
+                [this syncIfNeeded];
             });
         }
     };
@@ -173,12 +177,21 @@ NS_INLINE BOOL PropertyIsDynamic(objc_property_t property)
     free(properties);
 }
 
+- (void) syncIfNeeded
+{
+    if (self.syncOnPropertyChange) {
+        [NSObject cancelPreviousPerformRequestsWithTarget:_defaults selector:@selector(synchronize) object:nil];
+        [_defaults performSelector:@selector(synchronize) withObject:nil afterDelay:1];
+    }
+}
+
 - (instancetype) initWithUserDefaults:(NSUserDefaults *)defaults
 {
     NSParameterAssert(defaults);
     if ((self = [super init]))
     {
         _defaults = defaults;
+        _syncOnPropertyChange = NO;
     }
     return self;
 }
@@ -200,6 +213,7 @@ NS_INLINE BOOL PropertyIsDynamic(objc_property_t property)
 - (void) dealloc
 {
     [_defaults synchronize];
+    [NSObject cancelPreviousPerformRequestsWithTarget:_defaults];
     #if !__has_feature(objc_arc)
         [_defaults release];
         [super dealloc];
