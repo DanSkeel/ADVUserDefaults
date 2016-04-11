@@ -21,6 +21,12 @@ NS_REQUIRES_PROPERTY_DEFINITIONS
 @property (readonly, nonatomic) NSUserDefaults *defaults;
 
 /**
+ * If set to `YES` almost immediately synchronises NSUserDefaults if any poroperty changes. 
+ * Default is `NO`.
+ */
+@property (nonatomic) BOOL syncOnPropertyChange;
+
+/**
 * Designated initializer
 *
 * @param defaults A NSUserDefaults object (must not be nil)
